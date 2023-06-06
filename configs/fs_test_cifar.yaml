@@ -1,0 +1,17 @@
+eval_fs_args:
+  n_query: 15
+  n_shots:
+  - 1
+  - 5
+  n_task: 200
+  n_way: 5
+eval_fs_epoch: 5
+fs_attack:
+  alpha: 2
+  eps: 8
+  iters: 20
+  norm: inf
+fs_dataset: cifar-fs
+fs_dataset_args:
+  split: test
+load: ./save/rn12/cifar_als_samio_val/epoch-63.pth

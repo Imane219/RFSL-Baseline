@@ -1,0 +1,48 @@
+train_dataset: mini-imagenet
+train_dataset_args: {split: train, augment: resize}
+val_dataset: mini-imagenet
+val_dataset_args: {split: train_phase_val}
+test_fs_dataset: mini-imagenet
+test_fs_dataset_args: {split: test}
+test_eval_fs_epoch: 100
+eval_fs_args: {n_way: 5, n_shots: [1, 5], n_query: 15, n_task: 200}
+# val_fs_dataset: mini-imagenet
+# val_fs_dataset_args: {split: val}
+# val_eval_fs_epoch: 100
+
+model: classifier
+model_args:
+    encoder: resnet12
+    encoder_args: {}
+    classifier: nn-classifier 
+    classifier_args: {n_classes: 64}
+
+batch_size: 128
+max_epoch: 100
+optimizer: sgd
+optimizer_args: {lr: 0.05, weight_decay: 5.e-4, milestones: [60,80]}
+fs_iters: 5
+# load: ./save/rn12/mini_at/epoch-last.pth
+
+save_epoch: 100
+adversary: 
+    eps: 8
+    alpha: 2
+    iters: 7
+    norm: inf
+als:
+    gamma: 0.1
+    eta: 0.9
+    minval: 0
+    maxval: 1
+    inner: True
+fs_attack:
+    eps: 8
+    alpha: 2
+    iters: 20
+    norm: inf
+val_attack: 
+    eps: 8
+    alpha: 2
+    iters: 7
+    norm: inf
