@@ -22,7 +22,7 @@ from utils.als import AdaptiveLabelSmoothingLoss
 from utils.als import LabelSmoothingLoss
 from utils.sam import SAM
 
-torch.cuda.set_device(1)
+torch.cuda.set_device(2)
 
 def main(config):
     svname = args.name
@@ -195,7 +195,7 @@ def main(config):
         timer_epoch.s()
 
         # train_loss, train_acc, val_loss, val_acc
-        aves_keys = ['tl', 'ta', 'vl', 'va', 'robust_tl','robust_ta']
+        aves_keys = ['tl', 'ta', 'vl', 'va']
         if test_fs:
             for n_shot in n_shots:
                 aves_keys += ['fsa-' + str(n_shot)]
@@ -218,45 +218,23 @@ def main(config):
         for data, label, idx in tqdm(train_loader, desc='train', leave=True):
             data, label ,idx = data.cuda(), label.cuda(), idx.cuda()
 
-            adv_configs = config['adversary']
-            if als_inner:
-                adv_data = utils.attack_pgd(model, train_dataset, 
-                        train_dataset.convert_raw(data), label, 
-                        adv_configs['eps'] / 255., adv_configs['alpha'] / 255., adv_configs['iters'], 
-                        als=als, history_label=history_label[idx], als_loss=als_loss)
-            else:
-                adv_data = utils.attack_pgd(model, train_dataset, 
-                        train_dataset.convert_raw(data), label, 
-                        adv_configs['eps'] / 255., adv_configs['alpha'] / 255., adv_configs['iters'])
-            clean_logits = model(data)
-            robust_logits = model(adv_data)
-
-            clean_loss = F.cross_entropy(clean_logits, label)
+            logits = model(data)
+            acc = utils.compute_acc(logits, label)
             if als:
-                if als_inner == False:
-                    history_label[idx] = (config['als']['eta'] * history_label[idx] + 
-                                robust_logits.softmax(-1)) / (1 + config['als']['eta'])
-                robust_loss = als_loss(robust_logits,label,history_label=history_label[idx])
+                history_label[idx] = (config['als']['eta'] * history_label[idx] + 
+                            logits.softmax(-1)) / (1 + config['als']['eta'])
+                loss = als_loss(logits,label,history_label=history_label[idx])
             elif ls:
-                robust_loss = ls_loss(robust_logits,label)
+                loss = ls_loss(logits,label)
             else:
-                robust_loss = F.cross_entropy(robust_logits, label)
-
-            clean_acc = utils.compute_acc(clean_logits, label)
-            robust_acc = utils.compute_acc(robust_logits, label)
+                loss = F.cross_entropy(logits, label)
 
             optimizer.zero_grad()
-            robust_loss.backward()
+            loss.backward()
             optimizer.step()
 
-            if als_inner:
-                history_label[idx] = (config['als']['eta'] * history_label[idx] + 
-                            robust_logits.softmax(-1)) / (1 + config['als']['eta'])
-
-            aves['tl'].add(clean_loss.item())
-            aves['robust_tl'].add(robust_loss.item())
-            aves['ta'].add(clean_acc)
-            aves['robust_ta'].add(robust_acc)
+            aves['tl'].add(loss.item())
+            aves['ta'].add(acc)
 
         # val
         if val:
@@ -433,8 +411,8 @@ def main(config):
         t_used = utils.time_str(timer_used.t())
         t_estimate = utils.time_str(timer_used.t() / epoch * max_epoch)
 
-        log_str = 'epoch {}, train: robust {:.4f}|{:.4f}, clean {:.4f}|{:.4f}'.format(
-                str(epoch), aves['robust_tl'], aves['robust_ta'], aves['tl'], aves['ta'])
+        log_str = 'epoch {}, train: clean {:.4f}|{:.4f}'.format(str(epoch), 
+            aves['tl'], aves['ta'])
         
         if val:
             if val_attack:
