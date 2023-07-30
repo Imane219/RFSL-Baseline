@@ -22,7 +22,7 @@ from utils.als import AdaptiveLabelSmoothingLoss
 from utils.als import LabelSmoothingLoss
 from utils.sam import SAM
 
-torch.cuda.set_device(2)
+# torch.cuda.set_device(2)
 
 def main(config):
     svname = args.name
@@ -177,7 +177,7 @@ def main(config):
         else:
             history_label = np.array(train_dataset.label)
             history_label = torch.from_numpy((history_label[:, None] == np.arange(
-                train_dataset.n_classes)).astype(np.float32)).cuda()
+                train_dataset.n_classes)).astype(np.float32)).cuda(device)
         als_loss = AdaptiveLabelSmoothingLoss(gamma=config['als']['gamma'], minVal=config['als']['minval'], maxVal=config['als']['maxval'])
 
     if ls:
@@ -215,7 +215,7 @@ def main(config):
         # train
         model.train()
         for data, label, idx in tqdm(train_loader, desc='train', leave=True):
-            data, label ,idx = data.cuda(), label.cuda(), idx.cuda()
+            data, label ,idx = data.cuda(device), label.cuda(device), idx.cuda(device)
 
             adv_configs = config['adversary']
             if als_inner:
@@ -273,7 +273,7 @@ def main(config):
         if val:
             model.eval()
             for data, label, _ in tqdm(val_loader, desc='val', leave=False):
-                data, label = data.cuda(), label.cuda()
+                data, label = data.cuda(device), label.cuda(device)
 
                 if val_attack:
                     adv_configs = config['val_attack']
@@ -327,9 +327,9 @@ def main(config):
                                         desc='fs-' + str(n_shot), leave=False):
                         # shot 4,5,1,3,32,32; query 4,75,3,32,32
                         x_shot, x_query = fs.split_shot_query(
-                                    data.cuda(), n_way, n_shot, n_query, ep_per_batch=4)
+                                    data.cuda(device), n_way, n_shot, n_query, ep_per_batch=4)
                         label = fs.make_nk_label(
-                                    n_way, n_query, ep_per_batch=4).cuda()
+                                    n_way, n_query, ep_per_batch=4).cuda(device)
                         if fs_attack:
                             adv_x_query = utils.attack_pgd_fs(fs_model, test_fs_dataset, 
                                     x_shot, test_fs_dataset.convert_raw(x_query), label, 
@@ -392,9 +392,9 @@ def main(config):
                                         desc='fs-' + str(n_shot), leave=False):
                         # shot 4,5,1,3,32,32; query 4,75,3,32,32
                         x_shot, x_query = fs.split_shot_query(
-                                    data.cuda(), n_way, n_shot, n_query, ep_per_batch=4)
+                                    data.cuda(device), n_way, n_shot, n_query, ep_per_batch=4)
                         label = fs.make_nk_label(
-                                    n_way, n_query, ep_per_batch=4).cuda()
+                                    n_way, n_query, ep_per_batch=4).cuda(device)
                         if fs_attack:
                             adv_x_query = utils.attack_pgd_fs(fs_model, val_fs_dataset, 
                                     x_shot, val_fs_dataset.convert_raw(x_query), label, 
@@ -507,5 +507,6 @@ if __name__ == '__main__':
         config['_parallel'] = True
         config['_gpu'] = args.gpu
     
-    utils.set_gpu(args.gpu)
+    # utils.set_gpu(args.gpu)
+    device = torch.device("cuda")
     main(config)

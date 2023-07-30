@@ -22,7 +22,7 @@ from utils.als import AdaptiveLabelSmoothingLoss
 from utils.als import LabelSmoothingLoss
 from utils.sam import SAM
 
-torch.cuda.set_device(2)
+# torch.cuda.set_device(2)
 
 def main(config):
     svname = args.name

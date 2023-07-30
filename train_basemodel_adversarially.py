@@ -22,7 +22,7 @@ from utils.als import AdaptiveLabelSmoothingLoss
 from utils.als import LabelSmoothingLoss
 from utils.sam import SAM
 
-torch.cuda.set_device(1)
+# torch.cuda.set_device(0)
 
 def main(config):
     svname = args.name
@@ -178,7 +178,7 @@ def main(config):
         else:
             history_label = np.array(train_dataset.label)
             history_label = torch.from_numpy((history_label[:, None] == np.arange(
-                train_dataset.n_classes)).astype(np.float32)).cuda()
+                train_dataset.n_classes)).astype(np.float32)).cuda(device)
         als_loss = AdaptiveLabelSmoothingLoss(gamma=config['als']['gamma'], minVal=config['als']['minval'], maxVal=config['als']['maxval'])
 
     if ls:
@@ -216,18 +216,18 @@ def main(config):
         # train
         model.train()
         for data, label, idx in tqdm(train_loader, desc='train', leave=True):
-            data, label ,idx = data.cuda(), label.cuda(), idx.cuda()
+            data, label ,idx = data.cuda(device), label.cuda(device), idx.cuda(device)
 
             adv_configs = config['adversary']
             if als_inner:
                 adv_data = utils.attack_pgd(model, train_dataset, 
                         train_dataset.convert_raw(data), label, 
-                        adv_configs['eps'] / 255., adv_configs['alpha'] / 255., adv_configs['iters'], 
+                        adv_configs['eps'] / 255., adv_configs['alpha'] / 255., adv_configs['iters'], device, 
                         als=als, history_label=history_label[idx], als_loss=als_loss)
             else:
                 adv_data = utils.attack_pgd(model, train_dataset, 
                         train_dataset.convert_raw(data), label, 
-                        adv_configs['eps'] / 255., adv_configs['alpha'] / 255., adv_configs['iters'])
+                        adv_configs['eps'] / 255., adv_configs['alpha'] / 255., adv_configs['iters'], device)
             clean_logits = model(data)
             robust_logits = model(adv_data)
 
@@ -262,13 +262,13 @@ def main(config):
         if val:
             model.eval()
             for data, label, _ in tqdm(val_loader, desc='val', leave=False):
-                data, label = data.cuda(), label.cuda()
+                data, label = data.cuda(device), label.cuda(device)
 
                 if val_attack:
                     adv_configs = config['val_attack']
                     adv_data = utils.attack_pgd(model, val_dataset, 
                             val_dataset.convert_raw(data), label, 
-                            adv_configs['eps'] / 255., adv_configs['alpha'] / 255., adv_configs['iters'])
+                            adv_configs['eps'] / 255., adv_configs['alpha'] / 255., adv_configs['iters'], device)
 
                     with torch.no_grad():
                         clean_logits = model(data)
@@ -316,15 +316,15 @@ def main(config):
                                         desc='fs-' + str(n_shot), leave=False):
                         # shot 4,5,1,3,32,32; query 4,75,3,32,32
                         x_shot, x_query = fs.split_shot_query(
-                                    data.cuda(), n_way, n_shot, n_query, ep_per_batch=4)
+                                    data.cuda(device), n_way, n_shot, n_query, ep_per_batch=4)
                         label = fs.make_nk_label(
-                                    n_way, n_query, ep_per_batch=4).cuda()
+                                    n_way, n_query, ep_per_batch=4).cuda(device)
                         if fs_attack:
                             adv_x_query = utils.attack_pgd_fs(fs_model, test_fs_dataset, 
                                     x_shot, test_fs_dataset.convert_raw(x_query), label, 
                                     config['fs_attack']['eps'] / 255., 
                                     config['fs_attack']['alpha'] / 255., 
-                                    config['fs_attack']['iters'])
+                                    config['fs_attack']['iters'], device)
 
                             with torch.no_grad():
                                 clean_logits = fs_model(x_shot, x_query).view(-1, n_way)
@@ -381,15 +381,15 @@ def main(config):
                                         desc='fs-' + str(n_shot), leave=False):
                         # shot 4,5,1,3,32,32; query 4,75,3,32,32
                         x_shot, x_query = fs.split_shot_query(
-                                    data.cuda(), n_way, n_shot, n_query, ep_per_batch=4)
+                                    data.cuda(device), n_way, n_shot, n_query, ep_per_batch=4)
                         label = fs.make_nk_label(
-                                    n_way, n_query, ep_per_batch=4).cuda()
+                                    n_way, n_query, ep_per_batch=4).cuda(device)
                         if fs_attack:
                             adv_x_query = utils.attack_pgd_fs(fs_model, val_fs_dataset, 
                                     x_shot, val_fs_dataset.convert_raw(x_query), label, 
                                     config['fs_attack']['eps'] / 255., 
                                     config['fs_attack']['alpha'] / 255., 
-                                    config['fs_attack']['iters'])
+                                    config['fs_attack']['iters'], device)
 
                             with torch.no_grad():
                                 clean_logits = fs_model(x_shot, x_query).view(-1, n_way)
@@ -496,5 +496,6 @@ if __name__ == '__main__':
         config['_parallel'] = True
         config['_gpu'] = args.gpu
     
-    utils.set_gpu(args.gpu)
+    # utils.set_gpu(args.gpu)
+    device = torch.device("cuda")
     main(config)
