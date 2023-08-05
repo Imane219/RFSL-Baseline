@@ -221,12 +221,12 @@ def main(config):
             if als_inner:
                 adv_data = utils.attack_pgd(model, train_dataset, 
                         train_dataset.convert_raw(data), label, adv_configs['eps'] / 255., 
-                        adv_configs['alpha'] / 255., adv_configs['iters'], 
+                        adv_configs['alpha'] / 255., adv_configs['iters'], device,
                         als=als, history_label=history_label[idx], als_loss=als_loss)
             else:
                 adv_data = utils.attack_pgd(model, train_dataset, 
                         train_dataset.convert_raw(data), label, 
-                        adv_configs['eps'] / 255., adv_configs['alpha'] / 255., adv_configs['iters'])
+                        adv_configs['eps'] / 255., adv_configs['alpha'] / 255., adv_configs['iters'], device)
             clean_logits = model(data)
             robust_logits = model(adv_data)
 
@@ -279,7 +279,7 @@ def main(config):
                     adv_configs = config['val_attack']
                     adv_data = utils.attack_pgd(model, val_dataset, 
                             val_dataset.convert_raw(data), label, adv_configs['eps'] / 255., 
-                            adv_configs['alpha'] / 255., adv_configs['iters'])
+                            adv_configs['alpha'] / 255., adv_configs['iters'], device)
 
                     with torch.no_grad():
                         clean_logits = model(data)
@@ -305,7 +305,7 @@ def main(config):
                     aves['va'].add(acc)
 
         # test fs
-        if test_fs and (epoch % test_ef_epoch == 0 or epoch == max_epoch):
+        if test_fs and epoch > 40 and (epoch % test_ef_epoch == 0 or epoch == max_epoch):
             fs_model.eval()
             np.random.seed(0)
 
@@ -335,7 +335,7 @@ def main(config):
                                     x_shot, test_fs_dataset.convert_raw(x_query), label, 
                                     config['fs_attack']['eps'] / 255., 
                                     config['fs_attack']['alpha'] / 255., 
-                                    config['fs_attack']['iters'])
+                                    config['fs_attack']['iters'], device)
 
                             with torch.no_grad():
                                 clean_logits = fs_model(x_shot, x_query).view(-1, n_way)
@@ -400,7 +400,7 @@ def main(config):
                                     x_shot, val_fs_dataset.convert_raw(x_query), label, 
                                     config['fs_attack']['eps'] / 255., 
                                     config['fs_attack']['alpha'] / 255., 
-                                    config['fs_attack']['iters'])
+                                    config['fs_attack']['iters'], device)
 
                             with torch.no_grad():
                                 clean_logits = fs_model(x_shot, x_query).view(-1, n_way)
@@ -454,7 +454,7 @@ def main(config):
             else:
                 log_str += ', val {:.4f}|{:.4f}'.format(aves['vl'], aves['va'])
         
-        if test_fs and (epoch % test_ef_epoch == 0 or epoch == max_epoch):
+        if test_fs and epoch > 40 and (epoch % test_ef_epoch == 0 or epoch == max_epoch):
             log_str += test_fs_str
         if val_fs and (epoch % val_ef_epoch == 0 or epoch == max_epoch):
             log_str += val_fs_str

@@ -118,7 +118,7 @@ def main(config):
     ### model and optimizer ###
 
     if config.get('load'):
-        model_sv = torch.load(config['load'], map_location='cuda:{}'.format(args.gpu))
+        model_sv = torch.load(config['load'])
         model = models.load(model_sv)
     else:
         model = models.make(config['model'], **config['model_args'])
@@ -294,7 +294,7 @@ def main(config):
                     aves['va'].add(acc)
 
         # test fs
-        if test_fs and (epoch % test_ef_epoch == 0 or epoch == max_epoch):
+        if test_fs and epoch > 40 and (epoch % test_ef_epoch == 0 or epoch == max_epoch):
             fs_model.eval()
             np.random.seed(0)
 
@@ -443,7 +443,7 @@ def main(config):
             else:
                 log_str += ', val {:.4f}|{:.4f}'.format(aves['vl'], aves['va'])
         
-        if test_fs and (epoch % test_ef_epoch == 0 or epoch == max_epoch):
+        if test_fs and epoch > 40 and (epoch % test_ef_epoch == 0 or epoch == max_epoch):
             log_str += test_fs_str
         if val_fs and (epoch % val_ef_epoch == 0 or epoch == max_epoch):
             log_str += val_fs_str
