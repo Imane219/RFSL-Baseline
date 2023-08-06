@@ -101,7 +101,7 @@ def main(config):
                             x_shot, fs_dataset.convert_raw(x_query), label, 
                             config['fs_attack']['eps'] / 255., 
                             config['fs_attack']['alpha'] / 255., 
-                            config['fs_attack']['iters'])
+                            config['fs_attack']['iters'], device)
                     
                     with torch.no_grad():
                         clean_logits = model(x_shot, x_query).view(-1, n_way)
