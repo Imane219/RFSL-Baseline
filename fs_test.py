@@ -19,7 +19,7 @@ import utils.few_shot as fs
 from utils import mean_confidence_interval
 from datasets.samplers import CategoriesSampler
 
-torch.cuda.set_device(0)
+# torch.cuda.set_device(2)
 
 def main(config):
     svname = args.name
@@ -59,7 +59,7 @@ def main(config):
     else:
         fs_attack = False
 
-    base_model = models.load(torch.load(config['load'], map_location='cuda:{}'.format(args.gpu)))
+    base_model = models.load(torch.load(config['load']))
     model = models.make('meta-baseline', encoder=None)
     model.encoder = base_model.encoder
 
@@ -86,16 +86,16 @@ def main(config):
         clean_lst.append([])
         robust_lst.append([])
 
-    test_epochs = args.test_epochs
+    test_epochs = ef_epoch
     for epoch in range(1, test_epochs + 1):
         log_str = 'test epoch {}: '.format(epoch)
         for i, n_shot in enumerate(n_shots):
             for data, _ , _ in tqdm(fs_loaders[i],
                                 desc='fs-' + str(n_shot), leave=False):
                 x_shot, x_query = fs.split_shot_query(
-                            data.cuda(), n_way, n_shot, n_query, ep_per_batch=4)
+                            data.cuda(device), n_way, n_shot, n_query, ep_per_batch=4)
                 label = fs.make_nk_label(
-                            n_way, n_query, ep_per_batch=4).cuda()
+                            n_way, n_query, ep_per_batch=4).cuda(device)
                 if fs_attack:
                     adv_x_query = utils.attack_pgd_fs(model, fs_dataset, 
                             x_shot, fs_dataset.convert_raw(x_query), label, 
@@ -141,7 +141,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', default='./configs/fs_test_cifar.yaml')
     parser.add_argument('--name', default=None)
-    parser.add_argument('--test-epochs', type=int, default=5)
     parser.add_argument('--gpu', default='0')
     args = parser.parse_args()
 
@@ -150,5 +149,6 @@ if __name__ == '__main__':
         config['_parallel'] = True
         config['_gpu'] = args.gpu
 
-    utils.set_gpu(args.gpu)
+    # utils.set_gpu(args.gpu)
+    device = torch.device("cuda")
     main(config)
