@@ -30,7 +30,7 @@ This code is validated to run with Python 3.9.12, PyTorch 1.11.0, CUDA 11.3, CUD
 Create a materials folder and download the following datasets into the `./materials/` directory. Extract and rename them to 'mini-imagenet', 'cifar-fs' and 'fc100', which are consistent with the default name in the dataloaders.
 - [Mini-ImageNet](https://mega.nz/file/rx0wGQyS#96sFlAr6yyv-9QQPCm5OBFbOm4XSD0t-HlmGaT5GaiE)
 - [CifarFS](https://drive.google.com/file/d/1u2QQX0vNS7V_RyAv6rS4__GVePV8-AsS/view?usp=drive_link)
-- [FC100]()
+- [FC100](https://drive.google.com/file/d/1Pb6uXysgD4YmNo9H-yppYdAAxv_DJFVU/view?usp=drive_link)
 
 ## Usage
 
